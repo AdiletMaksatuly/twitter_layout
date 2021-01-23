@@ -13,16 +13,24 @@ class FetchData {
 }
 
 class Twitter {
-  constructor({ listElem, user, modalElems, tweetElems, avatarElems }) {
+  constructor({ listElem, user, modalElems, tweetElems, avatarElems, classDeleteTweet, classLikeTweet, sortElem, showUserPostElem, showLikedPostElem }) {
     const fetchData = new FetchData();
     this.tweets = new Posts();
     this.user = user;
     this.elements = {
       listElem: document.querySelector(listElem),
+      sortElem: document.querySelector(sortElem),
       modal: modalElems,
       tweetElems,
       avatarElems,
+      showUserPostElem: document.querySelector(showUserPostElem),
+      showLikedPostElem: document.querySelector(showLikedPostElem),
     }
+    this.cssClass = {
+      classDeleteTweet,
+      classLikeTweet,
+    }
+    this.sortDate = true;
 
     fetchData.getPost()
       .then(data => {
@@ -37,7 +45,13 @@ class Twitter {
     //Заменить аватар
     this.setAvatarOfLoginnedUser(this.elements.avatarElems, this.user.avatar);
 
+    this.elements.listElem.addEventListener('click', this.handlerTweet);
+    this.elements.sortElem.addEventListener('click', this.changeSort);
+
+    this.elements.showUserPostElem.addEventListener('click', this.showUserPost)
+    this.elements.showLikedPostElem.addEventListener('click', this.showLikesPost)
   }
+
 
   setAvatarOfLoginnedUser(avatarElems, avatarPathCss) {
     //Если у user есть аватар, то ставим, если нет, то не трогаем и будет стоять аватар по умолчанию который в верстке
@@ -55,10 +69,11 @@ class Twitter {
     }
   }
 
-  renderPosts(tweets) {
+  renderPosts(posts) {
+    const sortPost = posts.sort(this.sortFields());
     this.elements.listElem.textContent = '';
 
-    tweets.forEach(({ id, userName, nickname, postDate, text, img, likes, getDate }) => {
+    sortPost.forEach(({ id, userName, nickname, postDate, text, img, likes, liked, getDate }) => {
       this.elements.listElem.insertAdjacentHTML('beforeend', `
         <li>  
           <article class="tweet">
@@ -84,7 +99,7 @@ class Twitter {
               </div>
             </div>
             <footer>
-              <button class="tweet__like">
+              <button class="tweet__like ${liked ? this.cssClass.classLikeTweet.active : ''}" data-id="${id}">
                 ${likes}
               </button>
             </footer>
@@ -94,12 +109,14 @@ class Twitter {
     });
   }
 
-  showUserPost() {
-
+  showUserPost = () => {
+    const userPosts = this.tweets.posts.filter(item => item.nickname === this.user.nick);
+    this.renderPosts(userPosts);
   }
 
-  showLikesPost() {
-
+  showLikesPost = () => {
+    const likedPosts = this.tweets.posts.filter(item => item.liked);
+    this.renderPosts(likedPosts);
   }
 
   showAllPost() {
@@ -177,6 +194,35 @@ class Twitter {
       imgUrl = prompt('Введите адрес изображения');
     });
   }
+
+  handlerTweet = event => {
+    if (event.target.classList.contains(this.cssClass.classDeleteTweet)) {
+      this.tweets.deletePost(event.target.dataset.id);
+      this.showAllPost();
+    }
+
+    if (event.target.classList.contains(this.cssClass.classLikeTweet.like)) {
+      this.tweets.likePost(event.target.dataset.id);
+      this.showAllPost()
+    }
+  }
+
+  changeSort = () => {
+    this.sortDate = !this.sortDate;
+    this.showAllPost();
+  }
+
+  sortFields() {
+    if (this.sortDate) {
+      return (a, b) => {
+        const dateA = new Date(a.postDate);
+        const dateB = new Date(b.postDate);
+        return dateB - dateA;
+      }
+    } else {
+      return (a, b) => b.likes - a.likes;
+    }
+  }
 }
 
 class Posts {
@@ -188,13 +234,17 @@ class Posts {
     this.posts.push(new Post(tweet));
   }
 
-  // deletePost(id) {
-  //   this.posts.forEach((item, i, array) => item.id === id ? array.splice(i, 1) : void 0);
-  // }
+  deletePost(id) {
+    this.posts = this.posts.filter(item => item.id !== id);
+  }
 
-  // likePost(id) {
-  //   this.posts[id].changeLike();
-  // }
+  likePost(id) {
+    this.posts.forEach(item => {
+      if (item.id === id) {
+        item.changeLike();
+      }
+    });
+  }
 }
 
 class Post {
@@ -203,7 +253,7 @@ class Post {
     this.id = id ? id : this.generateId();
     this.userName = userName;
     this.nickname = nickname;
-    this.postDate = postDate ? new Date(postDate) : new Date();
+    this.postDate = postDate ? this.correctDate(postDate) : new Date();
     this.text = text;
     this.img = img;
     this.likes = likes;
@@ -232,6 +282,13 @@ class Post {
       minute: '2-digit',
     }
     return this.postDate.toLocaleString('ru-RU', options);
+  }
+
+  correctDate(date) {
+    if (isNaN(Date.parse(date))) {
+      date = date.replace(/\./g, '/');
+    }
+    return new Date(date);
   }
 }
 
@@ -269,4 +326,13 @@ const twitter = new Twitter({
 
   //Элементы где нужно заменить аватар по умолч. на аватар of user
   avatarElems: ['.tweet-form__avatar', '.header .avatar'],
+
+  classDeleteTweet: 'tweet__delete-button',
+  classLikeTweet: {
+    like: "tweet__like",
+    active: "tweet__like_active"
+  },
+  sortElem: '.header__link_sort',
+  showUserPostElem: '.header__link_profile',
+  showLikedPostElem: '.header__link_likes',
 });
