@@ -1,6 +1,9 @@
 class FetchData {
   getResource = async url => {
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      method: 'GET',
+      mode: 'no-cors'
+    });
 
     if (!res.ok) {
       throw new Error("Произошла ошибка:" + res.status);
@@ -9,7 +12,7 @@ class FetchData {
     return res.json();
   }
 
-  getPost = async () => await this.getResource('https://adiletmaksatuly.github.io/twitter_layout/tree/master/db/dataBase.json');
+  getPost = async () => await this.getResource('https://github.com/AdiletMaksatuly/twitter_layout/blob/master/db/dataBase.json');
 }
 
 class Twitter {
