@@ -9,7 +9,7 @@ class FetchData {
     return res.json();
   }
 
-  getPost = async () => await this.getResource('https://github.com/AdiletMaksatuly/twitter_layout/tree/master/db/dataBase.json');
+  getPost = async () => await this.getResource('https://adiletmaksatuly.github.io/twitter_layout/tree/master/db/dataBase.json');
 }
 
 class Twitter {
